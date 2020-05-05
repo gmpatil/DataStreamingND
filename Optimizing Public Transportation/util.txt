@@ -1,0 +1,20 @@
+kafka-topics --list  --zookeeper localhost:2181 
+
+# Weather producer
+kafka-topics --delete --zookeeper localhost:2181 --topic "com.cta.weather"
+
+# Postgres Source Connector
+curl http://localhost:8083/connectors/cta_stations | python -m json.tool
+curl http://localhost:8083/connectors/cta_stations/status | python -m json.tool
+
+
+kafka-topics --list  --zookeeper localhost:2181 --topic com.cta.station.data.stations
+kafka-console-consumer --topic "com.cta.station.data.stations" --bootstrap-server PLAINTEXT://localhost:9092 --from-beginning
+
+curl -X PUT  http://localhost:8083/connectors/cta_stations/pause | python -m json.tool 
+curl -X DELETE http://localhost:8083/connectors/cta_stations
+kafka-topics --delete  --zookeeper localhost:2181 --topic com.cta.station.data.stations
+
+
+# Faust Stream Processor
+faust -A faust_stream worker -l info
