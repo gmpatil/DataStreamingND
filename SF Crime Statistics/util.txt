@@ -2,12 +2,24 @@ kafka-topics --list --zookeeper localhost:2181
 kafka-console-consumer --bootstrap-server localhost:9092 --from-beginning --topic org.sfopd.cs.events
 pyspark --packages org.apache.spark:spark-sql-kafka-0-10_2.11:2.3.4 --conf spark.ui.port=3000
 
-# Uses producer_server.py to write to topic org.sfopd.cs.events
+
+Steps:
+# 1. Update Python packages
+./start.sh
+
+# 2. Start Kafka and Zookeeper servers
+./start-kafka.sh
+
+
+# 3. Run kafka_server.py, which uses producer_server.py to write to topic org.sfopd.cs.events
 python kafka_server.py 
 
-# Reads from the topic org.sfopd.cs.events
+# 4a.Verify message written to Kafka topics using kafka-consumer. 
+kafka-console-consumer --bootstrap-server localhost:9092 --from-beginning --topic org.sfopd.cs.events
+
+# 4. Verify message written to Kafka topics using custom python script.
 python consumer_server.py
 
-#
+# 5. Stream process Kafka Topic messages using Spark.
 spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.11:2.3.4 --master local[*] --conf spark.ui.port=3000 data_stream.py
 

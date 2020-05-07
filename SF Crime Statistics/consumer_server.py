@@ -5,7 +5,7 @@ import confluent_kafka
 from confluent_kafka import Consumer
 
 BROKER_URL = "PLAINTEXT://localhost:9092"
-TOPIC_NAME = "org.sfopd.cs.events"
+TOPIC_NAME = "org.sfopd.cs.events.1"
 
 async def consume(topic_name):
     """Consumes data from the Kafka Topic"""   

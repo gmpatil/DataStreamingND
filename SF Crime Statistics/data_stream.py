@@ -33,7 +33,7 @@ def run_spark_job(spark):
         .option("kafka.bootstrap.servers", "localhost:9092") \
         .option("subscribe", "org.sfopd.cs.events.1") \
         .option("startingOffsets", "earliest") \
-        .option("maxOffsetsPerTrigger", 200) \
+        .option("maxOffsetsPerTrigger", 300) \
         .option("stopGracefullyOnShutdown", "true") \
         .load()
 
