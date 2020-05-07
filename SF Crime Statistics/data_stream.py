@@ -80,8 +80,8 @@ def run_spark_job(spark):
         .option("truncate", "false") \
         .start()
 
-    # Attach a ProgressReporter
-    query.awaitTermination()
+#     # Attach a ProgressReporter
+#     query.awaitTermination()
 
     # Get the right radio code json path
     radio_code_json_filepath = "/home/workspace/radio_code.json"
@@ -111,6 +111,7 @@ def run_spark_job(spark):
         .trigger(processingTime="15 seconds") \
         .start()
     
+    query.awaitTermination()
     join_query.awaitTermination()
 
 
