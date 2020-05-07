@@ -1,0 +1,13 @@
+kafka-topics --list --zookeeper localhost:2181 
+kafka-console-consumer --bootstrap-server localhost:9092 --from-beginning --topic org.sfopd.cs.events
+pyspark --packages org.apache.spark:spark-sql-kafka-0-10_2.11:2.3.4 --conf spark.ui.port=3000
+
+# Uses producer_server.py to write to topic org.sfopd.cs.events
+python kafka_server.py 
+
+# Reads from the topic org.sfopd.cs.events
+python consumer_server.py
+
+#
+spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.11:2.3.4 --master local[*] --conf spark.ui.port=3000 data_stream.py
+
