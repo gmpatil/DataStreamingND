@@ -13,7 +13,7 @@ schema = StructType([
     StructField("call_date", StringType(), True),
     StructField("offense_date", StringType(), True), 
     StructField("call_time", StringType(), True), 
-    StructField("call_date_time", StringType(), True), 
+    StructField("call_date_time", TimestampType(), True), 
     StructField("disposition", StringType(), True), 
     StructField("address", StringType(), True), 
     StructField("city", StringType(), True), 
@@ -27,6 +27,7 @@ def run_spark_job(spark):
 
     # Create Spark configurations with max offset of 200 per trigger
     # set up correct bootstrap server and port
+#         .option("maxOffsetsPerTrigger", 300) \    
     df = spark \
         .readStream \
         .format("kafka") \
@@ -54,18 +55,20 @@ def run_spark_job(spark):
     
     # Select original_crime_type_name and disposition
     distinct_table = service_table \
-        .select("original_crime_type_name", "disposition") \
+        .select("call_date_time", "original_crime_type_name", "disposition") \
         .distinct() 
     
     print("Schema for distinct_table:")
     distinct_table.printSchema()
 
     # count the number of original crime type
+    # https://spark.apache.org/docs/latest/structured-streaming-programming-guide.html#window-operations-on-event-time
     agg_df = distinct_table \
         .dropna() \
-        .select("original_crime_type_name") \
-        .groupby("original_crime_type_name") \
-        .agg({"original_crime_type_name" : "count"}) 
+        .withWatermark("call_date_time", "1 hour") \
+        .select("call_date_time", "original_crime_type_name") \
+        .groupBy(psf.window("call_date_time", "1 hour"), "original_crime_type_name") \
+        .count() 
 
     # Q1. Submit a screen shot of a batch ingestion of the aggregation
     # Write output stream
@@ -92,9 +95,15 @@ def run_spark_job(spark):
     # Rename disposition_code column to disposition
     radio_code_df = radio_code_df.withColumnRenamed("disposition_code", "disposition")
 
+    agg2_df = distinct_table \
+        .withWatermark("call_date_time", "1 days") \
+        .select("call_date_time", "disposition") \
+        .groupby(psf.window("call_date_time", "1 day"), "disposition") \
+        .count() 
+    
     # Join on disposition column
-    join_query = agg_df.join(radio_code_df, distinct_table.disposition == radio_code_df.disposition, "left_outer") \
-        .select("original_crime_type_name", agg_df.disposition) \
+    join_query = agg2_df.join(radio_code_df, distinct_table.disposition == radio_code_df.disposition, "left_outer") \
+        .select("window", "description", "count") \
         .writeStream \
         .format("console") \
         .outputMode("complete") \
@@ -116,10 +125,10 @@ if __name__ == "__main__":
         .config("spark.ui.port", "3000") \
         .getOrCreate()
 
-    #spark.sparkContext.setLogLevel("INFO")
-    
     logger.info("Spark started")
-
+    
+    spark.sparkContext.setLogLevel("WARN")
+    
     run_spark_job(spark)
 
     spark.stop()
